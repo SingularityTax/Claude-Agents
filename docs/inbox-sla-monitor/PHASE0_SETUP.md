@@ -92,13 +92,13 @@ Zusätzlich in **Unternehmensanwendungen → Singularity Inbox SLA Monitor** die
 
 ## Block E – Postfachzugriff begrenzen (RBAC for Applications)
 
-### Entscheidung vorab: Persönliche Postfächer der Mitarbeiter einbeziehen?
+### Entscheidung: Mitarbeiterpostfächer werden einbezogen (Option A, entschieden 08.10.2026)
 
 Mitarbeiter antworten teils aus dem eigenen Postfach, ohne die Sammeladresse in Kopie zu setzen. Diese Antworten sieht der Monitor **nur**, wenn er die Gesendeten Elemente der Mitarbeiter lesen darf. Exchange kann das Leserecht nicht auf einen einzelnen Ordner beschränken. Technisch hat die App dann Lesezugriff auf das ganze Postfach. Der Code liest ausschließlich `SentItems` und nur Mails an externe Empfänger.
 
 | Option | Folge |
 |--------|-------|
-| **A (empfohlen):** Mitarbeiterpostfächer einbeziehen | vollständige Erfassung. In der Mitarbeiterinformation (DSGVO) muss stehen, dass der Monitor gesendete Mails an Mandanten auswertet |
+| **A (gewählt):** Mitarbeiterpostfächer einbeziehen | vollständige Erfassung. In der Mitarbeiterinformation (DSGVO) muss stehen, dass der Monitor gesendete Mails an Mandanten auswertet |
 | B: nur Sammelpostfächer | Antworten aus persönlichen Postfächern ohne CC gelten als **nicht beantwortet** und lösen Eskalationen aus. Funktioniert nur mit der harten Regel „Antworten immer aus dem Sammelpostfach oder mit CC“ |
 
 Fiona und Marko werden in **beiden** Optionen nicht überwacht, sie sind die Empfänger.
@@ -114,8 +114,11 @@ New-ServicePrincipal -AppId $AppId -ObjectId $ObjectId -DisplayName "Singularity
 "filing","gethelp","welcome","compliance","helphub","onboarding" | ForEach-Object {
   Set-Mailbox "$_@singularity.tax" -CustomAttribute10 "SLAMonitor"
 }
-# Nur bei Option A, für jeden Mitarbeiter aus Block A.2:
-# Set-Mailbox "vorname.nachname@singularity.tax" -CustomAttribute10 "SLAMonitor"
+# Mitarbeiter (Option A): Liste aus Block A.2. Fiona und Marko bleiben bewusst draußen.
+$Mitarbeiter = @(
+  # "vorname.nachname@singularity.tax",
+)
+$Mitarbeiter | ForEach-Object { Set-Mailbox $_ -CustomAttribute10 "SLAMonitor" }
 
 Set-Mailbox "sla-monitor@singularity.tax" -CustomAttribute11 "SLAMonitorSend"
 
@@ -133,6 +136,7 @@ New-ManagementRoleAssignment -App $AppId -Role "Application Mail.Send"          
 ```powershell
 Test-ServicePrincipalAuthorization -Identity $AppId -Resource filing@singularity.tax      # erwartet: Mail.Read = True
 Test-ServicePrincipalAuthorization -Identity $AppId -Resource marko.kaiser@singularity.tax # erwartet: kein Zugriff (InScope = False)
+# zusätzlich für einen Mitarbeiter aus $Mitarbeiter: erwartet Mail.Read = True
 ```
 
 Bitte beide Ausgaben schicken. Die zweite ist die wichtigere, denn sie belegt, dass die App **nicht** überall lesen kann. Rechteänderungen brauchen bis zu 2 Stunden, bis sie greifen.
