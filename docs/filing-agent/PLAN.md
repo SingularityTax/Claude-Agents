@@ -25,7 +25,7 @@ Vor dem Plan ein Blick in die Skills, die der Agent nutzen soll (`vat-compass` v
 
 ## 1. Kritische Punkte vorab
 
-1. **„Immer die aktuelle Skill-Version aus GitHub“ ist in der Form ein Risiko, keine Absicherung.** Ein Commit mit Fehler auf `main` rechnet beim nächsten Lauf unbemerkt für alle Mandanten falsch, ohne dass jemand zuschaut. Das Ziel (Bugfixes schnell in Produktion) ist richtig, der Weg muss sein: Releases mit Versions-Tag, ein Regressionstest gegen echte, bereits eingereichte Fälle als Freigabe-Gate, und jeder Lauf protokolliert die verwendete Skill-Version. Details in 3.6.
+1. **„Immer die aktuelle Skill-Version“ heißt: Jeder Merge geht sofort an alle, auch an den Agenten, der unbeaufsichtigt für alle Mandanten rechnet.** Das Ziel (einmal ändern, überall aktuell) ist richtig. Die Absicherung muss dann vor dem Merge liegen: Branch-Schutz, Regressionstests gegen bereits eingereichte Fälle als Pflicht-Check, Commit-Hash in jedem Lauf. Details in 3.6.
 2. **Die Reihenfolge in Funktion 4/5 hat eine Lücke.** Die Zahlungsinformation entsteht **vor** der Einreichung. Korrigiert der Account Manager bei der Einreichung einen Wert (ELSTER-Fehler, Nachbuchung, Rundung), passt das Schreiben nicht mehr zur Erklärung. Deshalb: Vor der Freigabe an den Mandanten vergleicht der Agent den Zahlbetrag im Schreiben mit dem Betrag im PoS. Weicht er ab, geht nichts an den Mandanten, und das Schreiben wird neu erzeugt.
 3. **„Mandant hat Daten bereitgestellt“ heißt nicht „Daten sind vollständig“.** Häufige Fälle: nur ein Marktplatz, nur zwei von drei Monaten (IT braucht das volle Quartal), falscher Zeitraum, TCR statt AVTR. Ein Agent, der auf unvollständigen Daten rechnet, produziert eine plausibel aussehende falsche Erklärung. Ein **Vollständigkeits-Check** vor der Berechnung ist Pflicht (3.2).
 4. **Die Eingangsbestätigung darf nichts versprechen.** „Wir haben Ihre Daten erhalten und prüfen sie“ ist richtig, „Ihre Daten sind vollständig, wir reichen ein“ ist es erst nach dem Check.
@@ -170,23 +170,38 @@ Ein PDF verhindert keine Manipulation, es macht sie nur unbequemer. Wer den Betr
 | + SHA-256 jedes PDFs in `run.json` und im Bitrix-Kommentar | gering | Nachweis im Streitfall, welches Dokument wir verschickt haben |
 | + PAdES-Signatur mit Kanzlei-Zertifikat (z. B. `pyHanko`) | mittel (Zertifikat nötig) | Jede Änderung macht die Signatur im PDF-Reader sichtbar ungültig. **Empfehlung** |
 
-### 3.6 Skills aus GitHub – sicher aktuell halten
+### 3.6 Skills: eine Quelle, ein Deployment für alle
+
+**Ziel (entschieden 08.10.2026):** Ein Skill wird an genau einer Stelle geändert und ist danach für alle Beteiligten aktualisiert: Mitarbeiter in claude.ai, Claude Code und der Filing-Agent.
+
+**Was technisch geht (Doku-Stand 08.10.2026):**
+
+| Verbraucher | Automatischer Weg | Einschränkung |
+|-------------|-------------------|---------------|
+| claude.ai (Organisation) | Organisationseinstellungen → Plugins & Skills → **Sync from GitHub**. Jeder Push auf den Default-Branch synchronisiert per Webhook | Das Repo muss ein **Plugin-Marketplace** sein (`.claude-plugin/marketplace.json`), Skills liegen in Plugins. Für einzelne Skills ist kein GitHub-Sync dokumentiert. Kein Revert im Admin-UI für synchronisierte Plugins: Rollback = `git revert` + Push. Einrichtung braucht die Owner-Rolle |
+| Claude Code (lokal und Cloud) | übernimmt die Plugins aus claude.ai, alternativ Managed Settings (`extraKnownMarketplaces` + `enabledPlugins`) | – |
+| Filing-Agent (Agent SDK) | lädt Plugins nur aus einem lokalen Ordner. Der Agent checkt nach jedem Merge denselben Commit aus | kein direkter Marketplace-Bezug |
+| Claude API `/v1/skills` | eigener Speicher, **nicht** mit claude.ai synchronisiert | nur relevant, wenn der Agent später über die API statt das SDK läuft. Dann CI-Job, der je Merge eine neue Skill-Version hochlädt |
+
+**Ablauf:**
 
 ```mermaid
 flowchart LR
-    A[Fix im Skill-Repo<br/>PR] --> B[CI: Regressionstests<br/>Golden Cases je Land]
-    B -->|grün| C[Release-Tag<br/>z. B. vat-compass v5.18.2]
-    C --> D[Agent prüft stündlich<br/>neue Tags]
-    D --> E[Kanarienlauf: 3 bereits<br/>eingereichte Fälle nachrechnen]
-    E -->|identisch| F[Neue Version aktiv]
-    E -->|Abweichung| G[Bleibt auf alter Version<br/>Teams an Marko]
+    A[Änderung auf Branch<br/>Pull Request] --> B[CI: Regressionstests<br/>Golden Cases je Land<br/>+ Secret- und PII-Scan]
+    B -->|rot| X[Merge blockiert]
+    B -->|grün| C[Merge auf main]
+    C --> D[claude.ai: Auto-Sync<br/>für alle Mitarbeiter]
+    C --> E[Filing-Agent: zieht<br/>denselben Commit]
+    C --> F[Claude Code: über<br/>claude.ai-Sync]
 ```
 
-- **Golden Cases:** je Land 2–3 echte, bereits eingereichte Perioden (anonymisiert oder im privaten Repo) mit den eingereichten Werten als Soll. Ein Release, das einen eingereichten Wert ändert, braucht eine Begründung im Changelog.
-- Der Agent zieht **Tags, nie `main`**. Rollback = vorherigen Tag aktivieren.
-- Jeder Lauf schreibt die Skill-Version in `run.json`. Wird später ein Bug gefunden, lässt sich sofort sagen, welche Mandanten und Perioden betroffen sind.
-- Laufende Perioden wechseln nicht mitten im Ablauf die Version.
-- Secrets gehören nicht ins Skill-Repo (Befund 1).
+- **Merge = Deployment.** Es gibt keinen zweiten Schritt und keine zweite Kopie. Deshalb liegt die Prüfung **vor** dem Merge: Branch-Schutz auf `main`, Merge nur per PR mit grüner CI. Das ersetzt das frühere Konzept mit Release-Tags und Kanarienlauf, weil alle Verbraucher denselben Stand haben sollen.
+- **Golden Cases:** je Land 2–3 bereits eingereichte Perioden mit den eingereichten Werten als Soll. Ändert ein PR einen eingereichten Wert, schlägt die CI fehl, bis der Golden Case mit Begründung angepasst ist. Die Testdaten liegen **nicht** im Repo (siehe unten), die CI lädt sie aus Drive.
+- **Bisherige Organisations-Skills in claude.ai** (manuell hochgeladen) werden nach der Migration entfernt. Sonst gibt es `vat-compass` zweimal, und niemand weiß, welcher läuft.
+- Der Agent wechselt nicht mitten in einem Lauf die Version. Jeder Lauf schreibt den Commit-Hash in `run.json`. Wird später ein Bug gefunden, ist sofort klar, welche Mandanten und Perioden betroffen sind.
+- **Nicht ins Repo:**
+  - Secrets (Befund 1).
+  - **Mandantendaten.** `singularity-vat-suite/references/client_master.csv` enthält rund 2.340 Mandanten mit E-Mail, Telefon, Adresse, Steuernummern und VAT-IDs. Ein GitHub-Repo ist eine Offenlegung an einen weiteren Dienstleister (§ 203 StGB). Lösung wie in 3.4: Die Suite liest Mandantendaten aus Bitrix, die CSV entfällt. Damit verschwindet zugleich die zweite Datenquelle.
 
 ### 3.7 Funktion 5 – Account Manager, PoS, Abschluss
 
@@ -251,7 +266,7 @@ Vorsichtige Erwartung für den Start: 50–70 % der Mandantenperioden laufen ohn
 
 | Phase | Inhalt | Ergebnis | Dauer (grob) |
 |-------|--------|----------|--------------|
-| **0 – Grundlagen** | Bitrix-Token rotieren und aus Skills entfernen. Skill-Repo auf GitHub neu anlegen (existiert noch nicht), Skills aus claude.ai übernehmen, Release-Tags, Sync zurück nach claude.ai. Headless-Modus in beiden Skills (Dateiausgabe, keine Rückfragen). Golden Cases je Land. Bitrix: Rhythmus PL/UK, UK-Stagger, Aufgaben-Vorlage pro Periode. Drive-Ordnerstruktur. AV-Vertrag LLM (wie SLA-Monitor) | sichere, testbare Skills | 2 Wochen |
+| **0 – Grundlagen** | Bitrix-Token rotieren und aus Skills entfernen. Skill-Repo auf GitHub neu anlegen (existiert noch nicht) als Plugin-Marketplace, Mandanten-CSV und Token entfernen, Branch-Schutz + CI, GitHub-Sync in claude.ai einrichten, alte Organisations-Skills entfernen. Headless-Modus in beiden Skills (Dateiausgabe, keine Rückfragen). Golden Cases je Land. Bitrix: Rhythmus PL/UK, UK-Stagger, Aufgaben-Vorlage pro Periode. Drive-Ordnerstruktur. AV-Vertrag LLM (wie SLA-Monitor) | sichere, testbare Skills | 2 Wochen |
 | **1 – Schattenlauf** | Eingang erkennen, Ablage, Vollständigkeits-Check, Berechnung, PDF. **Keine** Nachricht an Mandanten oder AM. Ergebnisse gegen die tatsächlich eingereichten Werte des Monats vergleichen | Trefferquote je Land, Liste der Bitrix-Datenlücken | 1 Monatszyklus |
 | **2 – AM-Spur** | Teams an AM, Bitrix-Aufgaben, PoS-Check, Upload ins Projekt. Mandantennachricht nur als Entwurf, AM gibt frei | AM arbeitet aus dem Paket heraus | 1 Monatszyklus |
 | **3 – Mandantenkommunikation** | Eingangsbestätigung, Nachforderungen und Abschlussnachricht automatisch. Danach die Anforderung zu Periodenbeginn mit Erinnerungen | Mandant sieht den Ablauf | 2 Wochen + 1 Zyklus |
@@ -276,7 +291,7 @@ Vorsichtige Erwartung für den Start: 50–70 % der Mandantenperioden laufen ohn
 
 | # | Frage | Empfehlung |
 |---|-------|------------|
-| 1 | Gibt es das Skill-Repo auf GitHub schon, und wer darf auf `main` mergen? | **Stand 08.10.2026: Es gibt keins.** Die Skills liegen nur als Organisations-Skills in claude.ai. Empfehlung: neues privates Repo nur für Skills, Merge nur per PR mit grüner Regression. **Eine Quelle der Wahrheit:** Ab dann wird nur noch im Repo geändert, und claude.ai wird aus den Release-Tags aktualisiert. Sonst laufen der Chat-Skill der Mitarbeiter und der Skill des Agenten auseinander, und dieselbe Periode ergibt zwei Ergebnisse. Erster Commit erst **nach** dem Entfernen des Tokens (Befund 1) |
+| 1 | Gibt es das Skill-Repo auf GitHub schon, und wer darf auf `main` mergen? | **Stand 08.10.2026: Es gibt keins.** Die Skills liegen nur als Organisations-Skills in claude.ai. Empfehlung: neues privates Repo nur für Skills, Merge nur per PR mit grüner Regression. **Eine Quelle der Wahrheit:** Ab dann wird nur noch im Repo geändert, und claude.ai synchronisiert automatisch bei jedem Merge auf `main` (3.6). Sonst laufen der Chat-Skill der Mitarbeiter und der Skill des Agenten auseinander, und dieselbe Periode ergibt zwei Ergebnisse. Erster Commit erst **nach** dem Entfernen des Tokens (Befund 1) |
 | 2 | Dürfen Golden Cases mit echten Mandantendaten im Repo liegen? | Nein, anonymisieren oder in Drive halten und nur in CI einbinden |
 | 3 | PAdES-Signatur ja oder nein? Gibt es ein Kanzlei-Zertifikat? | Ja, sonst ist „nicht manipulierbar“ nicht erfüllt. **Vorhanden (08.10.2026): ELSTER-Zertifikat und spanisches Zertifikat. Beide nicht für die automatische Signatur verwenden:** Mit diesen Schlüsseln werden Erklärungen bei ELSTER bzw. AEAT eingereicht. Liegen sie für die Automatik auf dem Mac mini, kann jeder mit Zugriff auf den Rechner (oder ein Fehler im Agenten) im Namen der Kanzlei einreichen. Außerdem ist das ELSTER-Zertifikat für die Anmeldung bei ELSTER gedacht, nicht für Dokumente, und Adobe zeigt es als „Gültigkeit unbekannt“ an. Empfehlung: eigenes Siegelzertifikat der GmbH (fortgeschrittenes oder qualifiziertes eSiegel, EU-Vertrauensliste) mit Remote-Signatur-API, nur zum Signieren von PDFs. Bis dahin: PDF/A + SHA-256 (Stufe 1–2 in 3.5) |
 | 4 | Interne Deadline vor der gesetzlichen Frist? | **Entschieden (08.10.2026): 4 Werktage** vor der gesetzlichen Frist, bei Dauerfristverlängerung entsprechend später. Folge siehe 3.1 |
