@@ -251,7 +251,7 @@ Vorsichtige Erwartung für den Start: 50–70 % der Mandantenperioden laufen ohn
 
 | Phase | Inhalt | Ergebnis | Dauer (grob) |
 |-------|--------|----------|--------------|
-| **0 – Grundlagen** | Bitrix-Token rotieren und aus Skills entfernen. Skill-Repo auf GitHub mit Release-Tags. Headless-Modus in beiden Skills (Dateiausgabe, keine Rückfragen). Golden Cases je Land. Bitrix: Rhythmus PL/UK, UK-Stagger, Aufgaben-Vorlage pro Periode. Drive-Ordnerstruktur. AV-Vertrag LLM (wie SLA-Monitor) | sichere, testbare Skills | 2 Wochen |
+| **0 – Grundlagen** | Bitrix-Token rotieren und aus Skills entfernen. Skill-Repo auf GitHub neu anlegen (existiert noch nicht), Skills aus claude.ai übernehmen, Release-Tags, Sync zurück nach claude.ai. Headless-Modus in beiden Skills (Dateiausgabe, keine Rückfragen). Golden Cases je Land. Bitrix: Rhythmus PL/UK, UK-Stagger, Aufgaben-Vorlage pro Periode. Drive-Ordnerstruktur. AV-Vertrag LLM (wie SLA-Monitor) | sichere, testbare Skills | 2 Wochen |
 | **1 – Schattenlauf** | Eingang erkennen, Ablage, Vollständigkeits-Check, Berechnung, PDF. **Keine** Nachricht an Mandanten oder AM. Ergebnisse gegen die tatsächlich eingereichten Werte des Monats vergleichen | Trefferquote je Land, Liste der Bitrix-Datenlücken | 1 Monatszyklus |
 | **2 – AM-Spur** | Teams an AM, Bitrix-Aufgaben, PoS-Check, Upload ins Projekt. Mandantennachricht nur als Entwurf, AM gibt frei | AM arbeitet aus dem Paket heraus | 1 Monatszyklus |
 | **3 – Mandantenkommunikation** | Eingangsbestätigung, Nachforderungen und Abschlussnachricht automatisch. Danach die Anforderung zu Periodenbeginn mit Erinnerungen | Mandant sieht den Ablauf | 2 Wochen + 1 Zyklus |
@@ -276,7 +276,7 @@ Vorsichtige Erwartung für den Start: 50–70 % der Mandantenperioden laufen ohn
 
 | # | Frage | Empfehlung |
 |---|-------|------------|
-| 1 | Gibt es das Skill-Repo auf GitHub schon, und wer darf auf `main` mergen? | Eigenes privates Repo, Merge nur per PR mit grüner Regression |
+| 1 | Gibt es das Skill-Repo auf GitHub schon, und wer darf auf `main` mergen? | **Stand 08.10.2026: Es gibt keins.** Die Skills liegen nur als Organisations-Skills in claude.ai. Empfehlung: neues privates Repo nur für Skills, Merge nur per PR mit grüner Regression. **Eine Quelle der Wahrheit:** Ab dann wird nur noch im Repo geändert, und claude.ai wird aus den Release-Tags aktualisiert. Sonst laufen der Chat-Skill der Mitarbeiter und der Skill des Agenten auseinander, und dieselbe Periode ergibt zwei Ergebnisse. Erster Commit erst **nach** dem Entfernen des Tokens (Befund 1) |
 | 2 | Dürfen Golden Cases mit echten Mandantendaten im Repo liegen? | Nein, anonymisieren oder in Drive halten und nur in CI einbinden |
 | 3 | PAdES-Signatur ja oder nein? Gibt es ein Kanzlei-Zertifikat? | Ja, sonst ist „nicht manipulierbar“ nicht erfüllt |
 | 4 | Interne Deadline vor der gesetzlichen Frist? | **Entschieden (08.10.2026): 4 Werktage** vor der gesetzlichen Frist, bei Dauerfristverlängerung entsprechend später. Folge siehe 3.1 |
