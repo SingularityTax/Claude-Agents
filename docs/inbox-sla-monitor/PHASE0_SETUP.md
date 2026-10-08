@@ -166,7 +166,7 @@ Wenn A bis F erledigt sind, baue ich Phase 1 (Schattenbetrieb). Zuerst kommt der
 | Block | Status |
 |-------|--------|
 | A – Bestandsaufnahme | erledigt |
-| B – Protokollierung | Unified Audit Log aktiv. Kopie gesendeter Mails und Audit sind bei allen Sammelpostfächern bereits an. **Offen:** Ausgabe `AuditDelegate` (wird SendAs protokolliert?) |
+| B – Protokollierung | **erledigt, keine Änderung nötig.** Unified Audit Log aktiv. Kopie gesendeter Mails, Audit, `SendAs`/`SendOnBehalf` und `MailItemsAccessed` sind bei allen Sammelpostfächern bereits an |
 | C – Postfach sla-monitor@ | offen |
 | D – App-Registrierung | offen |
 | E – Rechte begrenzen | offen. Mitarbeiterliste steht: 16 Personen |
