@@ -158,3 +158,25 @@ Im Portal: **Entwicklerressourcen → Andere → Eingehender Webhook**
 ## Danach
 
 Wenn A bis F erledigt sind, baue ich Phase 1 (Schattenbetrieb). Zuerst kommt der Rückimport der letzten 30 Tage, als Baseline pro Postfach und Mitarbeiter.
+
+---
+
+## Stand 08.10.2026 (Abend)
+
+| Block | Status |
+|-------|--------|
+| A – Bestandsaufnahme | erledigt |
+| B – Protokollierung | Unified Audit Log aktiv. Kopie gesendeter Mails und Audit sind bei allen Sammelpostfächern bereits an. **Offen:** Ausgabe `AuditDelegate` (wird SendAs protokolliert?) |
+| C – Postfach sla-monitor@ | offen |
+| D – App-Registrierung | offen |
+| E – Rechte begrenzen | offen. Mitarbeiterliste steht: 16 Personen |
+| F – Bitrix-Webhook | offen |
+
+Erkenntnisse aus Block A:
+
+- **hello@** ist ein eigenes Sammelpostfach mit Weiterleitung an welcome@ (Kopie bleibt in hello@). Der Monitor liest beide und dedupliziert über `internetMessageId`.
+- **onboarding@** empfängt auch info@, anfragen@ und transfers@.
+- **compliance@** ist ein Benutzerkonto ohne Stellvertreter, wird also vermutlich mit geteiltem Login genutzt. Antworten von dort sind keiner Person zuordenbar. Empfehlung: in ein Sammelpostfach umwandeln. Entscheidung offen.
+- **Transportregel „Auto CC Get Help“** setzt gethelp@ in Blindkopie. Es ist noch zu klären, für welche Mails. Ist gethelp@ ein Kopienarchiv, wird es als Quelle anders behandelt.
+- **Vier Mitarbeiter** können per Transportregel nicht aus dem persönlichen Postfach nach extern senden, sondern nur über die Sammelpostfächer. Sie werden überwacht, ihre persönlichen Postfächer kommen aber **nicht** in den Lesebereich (Block E). Ihre Antworten lassen sich nur über das SendAs-Audit zuordnen, deshalb ist Block B für sie entscheidend.
+- Nicht überwacht werden Marko, Fiona, zwei Familienkonten und die technischen Konten admin.de@ und UK@.
