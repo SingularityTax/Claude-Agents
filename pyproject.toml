@@ -1,0 +1,29 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "slamonitor"
+version = "0.1.0"
+description = "Inbox-SLA-Monitor: Antwortzeiten auf Mandantenanfragen (E-Mail + Bitrix24) messen"
+requires-python = ">=3.11"
+dependencies = [
+  "msal>=1.28",
+  "requests>=2.31",
+  "pyyaml>=6",
+  "keyring>=25",
+  "holidays>=0.50",
+]
+
+[project.optional-dependencies]
+llm = ["anthropic>=1.0"]
+dev = ["pytest>=8"]
+
+[project.scripts]
+sla-monitor = "slamonitor.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]

@@ -1,0 +1,68 @@
+# Inbox-SLA-Monitor – Beispielkonfiguration
+# Kopieren nach config.yaml (liegt NICHT im Repo) und anpassen.
+# Geheimnisse stehen hier nie drin. Sie kommen aus dem macOS-Schlüsselbund (siehe INSTALL_MAC.md).
+
+tenant_id: "5ca46514-430e-4af0-8cb1-51b0d5892074"
+client_id: "2fbf5cb9-563f-47d6-9d00-066498543e4c"
+
+data_dir: "~/sla-monitor-data"   # SQLite-DB, Berichte, Audit-Exporte
+
+internal_domains:
+  - singularity.tax
+  - singularity-vat.com
+
+# Sammelpostfächer, die überwacht werden (komplett gelesen)
+shared_mailboxes:
+  - filing@singularity.tax
+  - gethelp@singularity.tax
+  - hello@singularity.tax
+  - welcome@singularity.tax
+  - compliance@singularity.tax
+  - helphub@singularity.tax
+  - onboarding@singularity.tax
+
+# Überwachte Mitarbeiter.
+#   email:            Primäradresse
+#   name:             Anzeigename im Bericht
+#   signature_names:  Namen, mit denen die Person unterschreibt (für die Zuordnung, wenn kein Audit-Eintrag vorliegt)
+#   read_sent_items:  true  = persönliches Postfach liegt im App-Scope (Gesendete Elemente werden gelesen)
+#                     false = sendet nur über Sammelpostfächer (Zuordnung über Audit-Log)
+staff:
+  - email: vorname.nachname@singularity.tax
+    name: Vorname Nachname
+    signature_names: ["Vorname Nachname", "Vorname N"]
+    read_sent_items: true
+
+# Personen, deren Antworten als "beantwortet" zählen, die aber nicht bewertet werden
+unmonitored_responders:
+  - marko.kaiser@singularity.tax
+  - fiona.powley@singularity.tax
+
+# Absender, die nie Mandanten sind (zusätzlich zu den eingebauten Regeln)
+noise_senders: []          # z. B. "martin.bergerhausen@schaffenberger.de"
+noise_domains: []          # z. B. "klaviyomail.com"
+
+sla:
+  timezone: Europe/Berlin
+  workday_start: "08:00"
+  workday_end: "18:00"
+  holidays_subdivision: NW   # Feiertage NRW
+  normal_hours: 10           # 1 Werktag = 10 Arbeitsstunden
+  urgent_hours: 4            # P1
+
+# Antworten, die NICHT als echte Antwort zählen (Altlast Ticket-Agent)
+auto_ack_patterns:
+  - "Reference: SNG-"
+  - "We confirm receipt of your enquiry"
+  - "has been reviewed and addressed by our team"
+
+bitrix:
+  enabled: true
+  # Webhook-URL kommt aus dem Schlüsselbund (Eintrag "bitrix-webhook-url")
+  requests_per_second: 2
+
+llm:
+  # Erst einschalten, wenn der AV-Vertrag / die Verschwiegenheitsregelung mit Anthropic dokumentiert ist (§ 203 StGB).
+  enabled: false
+  model: claude-opus-5-5
+  effort: low
