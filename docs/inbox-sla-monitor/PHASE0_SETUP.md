@@ -167,7 +167,7 @@ Wenn A bis F erledigt sind, baue ich Phase 1 (Schattenbetrieb). Zuerst kommt der
 |-------|--------|
 | A – Bestandsaufnahme | erledigt |
 | B – Protokollierung | **erledigt, keine Änderung nötig.** Unified Audit Log aktiv. Kopie gesendeter Mails, Audit, `SendAs`/`SendOnBehalf` und `MailItemsAccessed` sind bei allen Sammelpostfächern bereits an |
-| C – Postfach sla-monitor@ | offen |
+| C – Postfach sla-monitor@ | erledigt (08.10.2026) |
 | D – App-Registrierung | offen |
 | E – Rechte begrenzen | offen. Mitarbeiterliste steht: 16 Personen |
 | F – Bitrix-Webhook | offen |
