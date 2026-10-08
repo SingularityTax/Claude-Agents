@@ -24,7 +24,7 @@ Vor dem Plan steht ein kurzer Blick in die echten Postfächer, weil er das Desig
 
 ## 1. Kritische Punkte vorab (bevor gebaut wird)
 
-1. **Bombardieren allein verändert kein Verhalten.** Wer 30 Teams-Pings am Tag bekommt, schaltet den Bot stumm. Wirksam sind **sichtbare Konsequenzen**: Die Eskalation geht ab Stufe 2 an Teamleitung bzw. Fiona. Ab Stufe 3 wird die Anfrage umverteilt, und das landet in der Mitarbeiter-Statistik. Pro Mitarbeiter gibt es höchstens **eine gebündelte Erinnerung pro Stufe**, nicht eine pro Mail.
+1. **Bombardieren allein verändert kein Verhalten.** Wer 30 Teams-Pings am Tag bekommt, schaltet den Bot stumm. Wirksam sind **sichtbare Konsequenzen**: Die Eskalation geht ab Stufe 2 an Fiona. Ab Stufe 3 wird die Anfrage umverteilt, und das landet in der Mitarbeiter-Statistik. Pro Mitarbeiter gibt es höchstens **eine gebündelte Erinnerung pro Stufe**, nicht eine pro Mail.
 2. **Überlastung und Unwillen unterscheiden.** Das Dashboard muss die offene Last pro Kopf zeigen. Wenn eine Person 60 offene Fälle hat, ist das ein Kapazitätsproblem, und mehr Druck löst es nicht.
 3. **Arbeitsrecht und Datenschutz.** Es gibt keinen Betriebsrat und keine Mitarbeiter in Deutschland. Die DSGVO gilt trotzdem, weil die GmbH Verantwortliche ist. Nötig sind eine Information der Mitarbeiter, ein Eintrag im Verarbeitungsverzeichnis und eine kurze DSFA (Details in Abschnitt 6). Die Mitarbeiter sollten offen informiert werden, denn die Transparenz ist ohnehin Teil des Hebels.
 4. **Berufsgeheimnis (§ 203 StGB, § 62a StBerG).** Mandantenmails an ein LLM zu geben, braucht einen AV-Vertrag und eine Verschwiegenheitsverpflichtung des Dienstleisters, eine EU-Datenverarbeitung bzw. Zero-Data-Retention und eine Dokumentation. Das ist lösbar, muss aber **vor** Phase 1 stehen.
@@ -80,7 +80,7 @@ flowchart TD
     K --> S[SLA-Scheduler alle 15 min]
     S --> T{Restzeit}
     T -->|"< 25 %"| T1[Stufe 1: Teams-DM an Owner, gebündelt]
-    T -->|überschritten| T2[Stufe 2: Teams + E-Mail an Owner + Teamleitung]
+    T -->|überschritten| T2[Stufe 2: Teams + E-Mail an Owner + Fiona]
     T -->|"+ 1 Werktag"| T3[Stufe 3: Fiona/Marko, Umverteilung vorgeschlagen]
     T -->|"+ 2 Werktage oder P1 überschritten"| T4[Stufe 4: Marko übernimmt / Krisen-Liste]
 
@@ -164,9 +164,9 @@ Für jede eingehende Nachricht liefert die KI ein strukturiertes Ergebnis:
 |-------|----------------|-----------------|-------|-----------|
 | 0 | Eingang | Eingang | Teams-DM (gebündelt) | Owner: „Neuer Fall“ |
 | 1 | 75 % der Frist | 50 % der Frist | Teams-DM, dazu Teams-Aktivität | Owner |
-| 2 | Frist überschritten | Frist überschritten | Teams + E-Mail | Owner **und** Teamleitung |
-| 3 | +1 Werktag | +2 h | Teams + E-Mail + Dashboard rot | Fiona (Umverteilung mit einem Klick) |
-| 4 | +2 Werktage | +4 h | E-Mail + Teams | Marko, Fall erscheint auf der „Chef übernimmt“-Liste |
+| 2 | Frist überschritten | Frist überschritten | Teams + E-Mail | Owner, dazu Fiona (gebündelt 10:00 und 15:00 Uhr, P1 sofort) |
+| 3 | +1 Werktag | +2 h | Teams + E-Mail + Dashboard rot | Fiona und Marko (Umverteilung mit einem Klick) |
+| 4 | +2 Werktage | +4 h | E-Mail + Teams | Marko, Fall erscheint auf der „Chef übernimmt“-Liste. Der Owner wird in der Scorecard markiert |
 
 Dazu kommen:
 
@@ -242,12 +242,18 @@ flowchart LR
 | 5 | Betriebsrat | Keiner. Keine Mitarbeiter in Deutschland, § 87 BetrVG entfällt. |
 | 6 | Repo | Plan darf ins Repo. |
 
-**Weiterhin offen:**
+| 7 | Eskalationsempfänger | **Fiona und Marko.** Es gibt keine Teamleitungsebene. |
+| 8 | Umsetzung | **Eigenentwicklung** |
+| 9 | Bitrix-Tarif | **Enterprise.** REST, Webhooks und Extranet sind verfügbar. |
+| 10 | M365-Admin | Marko richtet App-Registrierung und Exchange-Rechte selbst ein, nach der Anleitung in `PHASE0_SETUP.md`. |
 
-- Wer ist Stufe-2-Empfänger (Teamleitung) je Team? Gibt es eine Vertretungsregel?
-- Hosting und Budget: Eigenentwicklung (Empfehlung) oder Standardtool plus Eigenbau nur für Bitrix?
-- Welcher Bitrix-Tarif? Für REST und Webhooks braucht es einen kommerziellen Tarif.
-- Ist hello@ ein Alias von welcome@? Es braucht Lesezugriff für die App-Registrierung.
+**Weiterhin offen:** Ist hello@ ein Alias von welcome@? Das klärt sich beim Einrichten (`Get-Recipient hello@singularity.tax`).
+
+**Konsequenz aus Entscheidung 7:** Ohne Teamleitung landen ab Stufe 2 alle Eskalationen direkt bei Fiona und Marko. Damit werden die beiden zum Engpass. Bei schlechter Ausgangslage sind 20 bis 40 Eskalationen pro Tag realistisch. Deshalb:
+
+- **Stufe 2 geht nur an Fiona, gebündelt zweimal täglich (10:00 und 15:00 Uhr).** Einzelmeldungen gibt es nur für P1.
+- **Stufe 3 geht an Fiona und Marko.** Marko bekommt nur, was Fiona nicht innerhalb eines halben Werktags umverteilt hat, und alle P1-Verstöße.
+- **Vertretung:** Ist Fiona abwesend (Outlook-Abwesenheit), geht Stufe 2 an Marko, und umgekehrt.
 
 ### Konsequenzen aus den Entscheidungen
 
