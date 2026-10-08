@@ -169,7 +169,7 @@ Wenn A bis F erledigt sind, baue ich Phase 1 (Schattenbetrieb). Zuerst kommt der
 | B – Protokollierung | **erledigt, keine Änderung nötig.** Unified Audit Log aktiv. Kopie gesendeter Mails, Audit, `SendAs`/`SendOnBehalf` und `MailItemsAccessed` sind bei allen Sammelpostfächern bereits an |
 | C – Postfach sla-monitor@ | erledigt (08.10.2026) |
 | D – App-Registrierung | erledigt. `User.Read.All` und `ActivityFeed.Read` als Anwendungsberechtigung erteilt. Aufräumen optional: alte delegierte `User.Read.All`-Zustimmung widerrufen |
-| E – Rechte begrenzen | erledigt und geprüft (Scope greift, Marko-Postfach gesperrt). Offen: ein Mitarbeiterpostfach nicht gefunden |
+| E – Rechte begrenzen | erledigt und geprüft (Scope greift, Marko-Postfach gesperrt). Nicht gefundenes Postfach gehört zu einem ausgeschiedenen Mitarbeiter, damit erledigt. Überwacht werden 15 Personen |
 | F – Bitrix-Webhook | offen |
 
 Erkenntnisse aus Block A:
