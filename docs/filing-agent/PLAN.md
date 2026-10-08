@@ -2,7 +2,7 @@
 
 **Ziel:** Ein Agent begleitet jeden Berichtszeitraum weitgehend autonom: Er fordert Transaktionsdaten an, erkennt den Eingang in Bitrix oder filing@, legt die Daten in Google Drive ab, rechnet alle fälligen Voranmeldungen mit `vat-compass`, erzeugt die Zahlungsinformationen mit `singularity-vat-suite` als PDF und informiert den Account Manager. Nach Einreichung und Upload des Proof of Submission (PoS) stellt er alles in das Bitrix-Projekt des Mandanten und schreibt dem Mandanten.
 
-Stand: 08.10.2026 · Status: Entwurf, Entscheidungen offen (Abschnitt 8)
+Stand: 08.10.2026 · Status: Entwurf, Entscheidungen 4 und 5 getroffen, Rest offen (Abschnitt 8)
 
 ---
 
@@ -103,7 +103,9 @@ Der Status lebt an **einer** Stelle: eine Bitrix-Aufgabe pro Mandant, Periode un
 - Täglicher Lauf: Für jeden aktiven Mandanten aus Bitrix die Registrierungen (`seller_vat_matrix`) und den Abgaberhythmus je Land lesen. Daraus die Perioden ableiten, die gestern geendet haben.
 - Eine Nachricht pro Mandant, nicht pro Land: „Bitte laden Sie den Amazon VAT Transaction Report für Oktober 2026 hoch. Er wird für folgende Erklärungen benötigt: DE (monatlich), PL (monatlich), IT (Q4, mit Dezember).“
 - Kanal: Beitrag im Bitrix-Projekt des Mandanten (Hauptkanal, dort soll hochgeladen werden), dazu eine Mail als Kopie.
-- Erinnerungen relativ zur **internen** Deadline (gesetzliche Frist minus Bearbeitungspuffer, z. B. 4 Werktage), höchstens drei.
+- **Interne Deadline (entschieden): gesetzliche Frist minus 4 Werktage.** Bis dahin müssen die Daten vollständig vorliegen.
+- **Folge für das Mandantenfenster:** Bei DE monatlich **ohne** Dauerfristverlängerung (Frist 10. des Folgemonats) bleiben dem Mandanten nach Periodenende nur etwa 2–3 Werktage. Feste Erinnerungen wie „T-10, T-5“ passen da nicht. Die Erinnerungen richten sich deshalb nach der Länge des Fensters: bei ≤ 3 Werktagen eine Erinnerung am Vortag der internen Deadline, sonst zur Fenstermitte und am Vortag. Höchstens drei Erinnerungen.
+- Mandanten, bei denen das Fenster regelmäßig nicht reicht, erscheinen im Wochenbericht. Für sie ist eine Dauerfristverlängerung (DE) oder eine frühere Datenlieferung die Lösung, nicht mehr Erinnerungen.
 - Ohne Daten bis zur internen Deadline: Teams an den AM. Der Agent macht keine Schätzungen.
 - Mandanten mit Status `ARCHIVE`, `ONBOARDING`, `INACTIVE`, `POA Revoked`, `Deregistered` werden **nicht** angeschrieben, sondern im Wochenbericht aufgeführt.
 
@@ -188,7 +190,7 @@ flowchart LR
 
 ### 3.7 Funktion 5 – Account Manager, PoS, Abschluss
 
-- **Teams an den zuständigen AM** (aus Bitrix: Projekt-Verantwortlicher), eine gebündelte Nachricht pro Mandant und Periode: Jurisdiktionen, Status, Beträge, Frist, Links auf Drive und Bitrix-Aufgabe. Manuelle Fälle mit Grund („PL: Sole-Trader-Daten fehlen in Bitrix“).
+- **Teams an den zuständigen AM** (entschieden: der Projekt-Verantwortliche in Bitrix; ist er abwesend, geht die Nachricht an die Vertretung bzw. an Fiona; fehlt er im Projekt, an Fiona und in den Wochenbericht), eine gebündelte Nachricht pro Mandant und Periode: Jurisdiktionen, Status, Beträge, Frist, Links auf Drive und Bitrix-Aufgabe. Manuelle Fälle mit Grund („PL: Sole-Trader-Daten fehlen in Bitrix“).
 - **PoS-Eingang:** Der AM hängt den PoS an die Bitrix-Aufgabe der Periode und schließt sie. Kein anderer Weg (nicht per Mail, nicht per Teams), sonst ist der Eingang nicht verlässlich erkennbar.
 - **PoS-Check:** PDF des PoS auslesen (ELSTER-Übertragungsprotokoll, MOJE daně, e-Deklaracje-UPO, AEAT-Justificante usw.), Steuernummer, Periode und Zahlbetrag gegen die Zahlungsinformation prüfen. Bei Abweichung: Schreiben neu erzeugen, AM informieren, nichts an den Mandanten.
 - **Abschluss:** PoS und Zahlungsinfo-PDF ins Bitrix-Projekt (Dateien des Projekts, Ordner „VAT Filings / 2026-10“), dann die Mandantennachricht:
@@ -270,15 +272,15 @@ Vorsichtige Erwartung für den Start: 50–70 % der Mandantenperioden laufen ohn
 
 ---
 
-## 8. Offene Entscheidungen
+## 8. Entscheidungen
 
 | # | Frage | Empfehlung |
 |---|-------|------------|
 | 1 | Gibt es das Skill-Repo auf GitHub schon, und wer darf auf `main` mergen? | Eigenes privates Repo, Merge nur per PR mit grüner Regression |
 | 2 | Dürfen Golden Cases mit echten Mandantendaten im Repo liegen? | Nein, anonymisieren oder in Drive halten und nur in CI einbinden |
 | 3 | PAdES-Signatur ja oder nein? Gibt es ein Kanzlei-Zertifikat? | Ja, sonst ist „nicht manipulierbar“ nicht erfüllt |
-| 4 | Interne Deadline vor der gesetzlichen Frist? | 4 Werktage, bei Dauerfristverlängerung entsprechend |
-| 5 | Wer ist der zuständige AM: Projekt-Verantwortlicher in Bitrix oder ein eigenes Feld? | Projekt-Verantwortlicher, Lücken im Wochenbericht |
+| 4 | Interne Deadline vor der gesetzlichen Frist? | **Entschieden (08.10.2026): 4 Werktage** vor der gesetzlichen Frist, bei Dauerfristverlängerung entsprechend später. Folge siehe 3.1 |
+| 5 | Wer ist der zuständige AM? | **Entschieden (08.10.2026): Projekt-Verantwortlicher in Bitrix.** Lücken im Wochenbericht, Abwesenheit → Vertretung/Fiona |
 | 6 | Wie liefern Mandanten ohne Amazon-Daten (eigene Buchhaltung, Singularity-Template)? | Template-Pfad nutzen, aber in Phase 1 gesondert messen |
 | 7 | Soll `singularity-vat-suite` Mandantendaten künftig aus Bitrix statt aus `client_master.csv` lesen? | Ja (3.4) |
 | 8 | Sprache der Datenanforderung und Bestätigung: immer EN oder nach Mandantensprache in Bitrix? | EN als Standard, DE wenn in Bitrix hinterlegt |
