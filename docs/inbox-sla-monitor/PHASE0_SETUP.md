@@ -170,7 +170,7 @@ Wenn A bis F erledigt sind, baue ich Phase 1 (Schattenbetrieb). Zuerst kommt der
 | C – Postfach sla-monitor@ | erledigt (08.10.2026) |
 | D – App-Registrierung | erledigt. `User.Read.All` und `ActivityFeed.Read` als Anwendungsberechtigung erteilt. Aufräumen optional: alte delegierte `User.Read.All`-Zustimmung widerrufen |
 | E – Rechte begrenzen | erledigt und geprüft (Scope greift, Marko-Postfach gesperrt). Nicht gefundenes Postfach gehört zu einem ausgeschiedenen Mitarbeiter, damit erledigt. Überwacht werden 15 Personen |
-| F – Bitrix-Webhook | offen |
+| F – Bitrix-Webhook | erledigt. Webhook liefert 400 Projekte (URL im Passwortmanager) |
 
 Erkenntnisse aus Block A:
 
