@@ -210,7 +210,12 @@ flowchart LR
     S[Scheduler 15 min] --> W
 ```
 
-- **Hosting:** Azure (Region Germany West Central oder EU). Die Daten verlassen den M365-Kontext nur Richtung LLM, und dafür gibt es den Vertrag.
+- **Hosting (entschieden 08.10.2026): Mac mini von Marko**, wie die bestehenden Agenten. Daraus folgen Pflichten:
+  - Start und Neustart über `launchd` (KeepAlive). Energie-Einstellungen: kein Ruhezustand und automatischer Neustart nach Stromausfall.
+  - Secrets (Client-Secret, Bitrix-Webhook, LLM-Key) liegen im **macOS-Schlüsselbund**, nicht in Dateien. FileVault ist aktiv.
+  - Datenbank: lokales SQLite bzw. PostgreSQL mit täglichem verschlüsseltem Backup.
+  - **Totmannschalter:** Der Monitor schickt Fiona und Marko werktags um 08:00 Uhr ein Lebenszeichen. Fehlt es, ist der Monitor ausgefallen, und es gibt **keine** Eskalationen. Ohne dieses Lebenszeichen würde ein Ausfall unbemerkt bleiben.
+  - Dashboard: Zugriff über das lokale Netz bzw. Tailscale, Login per Entra-SSO. Keine Portfreigabe ins Internet.
 - **Teams-Benachrichtigungen:** Teams Workflows (Power Automate) per Webhook oder ein schlanker Bot. Der Webhook ist schneller umgesetzt, der Bot kann persönliche DMs schicken.
 - **Warum keine Standardsoftware** wie EmailAnalytics, timetoreply oder Emailgistics? Diese Tools messen Antwortzeiten in Outlook-Postfächern gut und sind schneller eingeführt. Sie kennen aber weder Bitrix noch Ihre Zuständigkeiten, und sie erkennen keine Scheinerledigungen. **Empfehlung:** für die Baseline-Messung in Phase 1 ernsthaft gegen die Eigenentwicklung abwägen, insbesondere wenn die Bitrix-Anbindung sich als schwierig erweist.
 
