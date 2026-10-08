@@ -74,6 +74,7 @@ class Config:
     llm_enabled: bool = False
     llm_model: str = "claude-opus-5-5"
     llm_effort: str = "low"
+    report_language: str = "de"
 
     @property
     def db_path(self) -> Path:
@@ -94,6 +95,7 @@ def load_config(path: str | Path) -> Config:
     sla = SlaSettings(**(raw.get("sla") or {}))
     bitrix = raw.get("bitrix") or {}
     llm = raw.get("llm") or {}
+    report = raw.get("report") or {}
     data_dir = Path(os.path.expanduser(raw.get("data_dir", "~/sla-monitor-data")))
     data_dir.mkdir(parents=True, exist_ok=True)
     return Config(
@@ -113,4 +115,5 @@ def load_config(path: str | Path) -> Config:
         llm_enabled=llm.get("enabled", False),
         llm_model=llm.get("model", "claude-opus-5-5"),
         llm_effort=llm.get("effort", "low"),
+        report_language=report.get("language", "de"),
     )

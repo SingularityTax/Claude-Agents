@@ -61,6 +61,10 @@ bitrix:
   # Webhook-URL kommt aus dem Schlüsselbund (Eintrag "bitrix-webhook-url")
   requests_per_second: 2
 
+report:
+  # Sprache von Bericht und Fall-CSV: de oder en
+  language: de
+
 llm:
   # Erst einschalten, wenn der AV-Vertrag / die Verschwiegenheitsregelung mit Anthropic dokumentiert ist (§ 203 StGB).
   enabled: false

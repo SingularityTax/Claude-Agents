@@ -161,7 +161,7 @@ def cmd_build(cfg: Config, args) -> int:
     out = cfg.data_dir / "reports"
     out.mkdir(exist_ok=True)
     stamp = now.strftime("%Y%m%d-%H%M")
-    html_path, csv_path = out / f"baseline-{stamp}.html", out / f"faelle-{stamp}.csv"
+    html_path, csv_path = out / f"baseline-{stamp}.html", out / f"{'cases' if cfg.report_language == 'en' else 'faelle'}-{stamp}.csv"
     write_html(cfg, cases, events, since, now, html_path)
     write_csv(cfg, cases, csv_path)
     print(f"{len(events)} Nachrichten, {len(cases)} Mandantenanfragen")

@@ -11,21 +11,92 @@ from pathlib import Path
 from .config import Config
 from .model import Case, Event
 
-STATUS_DE = {
-    "answered_in_sla": "beantwortet, in Frist",
-    "answered_late": "beantwortet, zu spät",
-    "open_in_sla": "offen, in Frist",
-    "open_overdue": "offen, ÜBERFÄLLIG",
+STATUS = {
+    "de": {
+        "answered_in_sla": "beantwortet, in Frist",
+        "answered_late": "beantwortet, zu spät",
+        "open_in_sla": "offen, in Frist",
+        "open_overdue": "offen, ÜBERFÄLLIG",
+    },
+    "en": {
+        "answered_in_sla": "answered, within SLA",
+        "answered_late": "answered, late",
+        "open_in_sla": "open, within SLA",
+        "open_overdue": "open, OVERDUE",
+    },
 }
-VIA_DE = {"personal": "eigenes Postfach", "audit": "Audit-Log", "signature": "Signatur",
-          "bitrix": "Bitrix", "unknown": "unbekannt", "": ""}
+VIA = {
+    "de": {"personal": "eigenes Postfach", "audit": "Audit-Log", "signature": "Signatur",
+           "bitrix": "Bitrix", "unknown": "unbekannt", "": ""},
+    "en": {"personal": "own mailbox", "audit": "audit log", "signature": "signature",
+           "bitrix": "Bitrix", "unknown": "unknown", "": ""},
+}
+DATE_FMT = {"de": "%d.%m.%Y %H:%M", "en": "%Y-%m-%d %H:%M"}
+
+TEXT = {
+    "de": {
+        "title": "SLA-Baseline",
+        "h1": "Antwortzeiten – Baseline",
+        "period": "Zeitraum {since} bis {now}. Frist: {normal:g} Arbeitsstunden (1 Werktag), dringend {urgent:g} "
+                  "Arbeitsstunden. Arbeitszeit {start}–{end}, Mo–Fr, Feiertage {holidays}. "
+                  "Schattenbetrieb: keine Eskalationen. Einstufung {llm}.",
+        "llm_on": "mit KI", "llm_off": "nur regelbasiert (KI aus)",
+        "t_cases": "Mandantenanfragen", "t_in_sla": "beantwortet in Frist", "t_late": "beantwortet zu spät",
+        "t_overdue": "offen, überfällig", "t_open": "offen, in Frist", "t_median": "Median Erstantwort",
+        "t_fake": "Schein-erledigt, ohne Antwort", "t_unknown": "Antwortende/r unbekannt",
+        "head": ["Prio", "Eingang", "Mandant", "Betreff", "Postfach", "Zuständig (Bitrix)", "Nachfragen",
+                 "Schein-erledigt", ""],
+        "open_link": "öffnen",
+        "h_overdue": "Offen und überfällig",
+        "h_fake": "„Erledigt“ gemeldet ohne echte Antwort",
+        "n_fake": "Der alte Ticket-Agent hat „reviewed and addressed“ verschickt, eine inhaltliche Antwort fehlt bis heute.",
+        "h_staff": "Mitarbeiter",
+        "n_staff": "„Beantwortet“ zählt die erste echte Antwort je Anfrage. „Offen als Zuständige/r“ = offene Anfragen "
+                   "von Mandanten, deren Bitrix-Projekt diese Person verantwortet.",
+        "staff_head": ["Person", "beantwortet", "davon in Frist", "Quote", "Median", "nur Zwischenstand",
+                       "offen als Zuständige/r"],
+        "not_rated": "nicht bewertet",
+        "h_mailbox": "Eingang je Postfach",
+        "mailbox_head": ["Postfach / Quelle", "eingehende Nachrichten"],
+        "h_kinds": "Einstufung aller Nachrichten",
+    },
+    "en": {
+        "title": "SLA Baseline",
+        "h1": "Response times – baseline",
+        "period": "Period {since} to {now}. SLA: {normal:g} business hours (1 working day), urgent {urgent:g} "
+                  "business hours. Business hours {start}–{end}, Mon–Fri, public holidays {holidays}. "
+                  "Shadow mode: no escalations. Classification {llm}.",
+        "llm_on": "with AI", "llm_off": "rule-based only (AI off)",
+        "t_cases": "Client enquiries", "t_in_sla": "answered within SLA", "t_late": "answered late",
+        "t_overdue": "open, overdue", "t_open": "open, within SLA", "t_median": "Median first response",
+        "t_fake": "Closed without a reply", "t_unknown": "Responder unknown",
+        "head": ["Prio", "Received", "Client", "Subject", "Mailbox", "Owner (Bitrix)", "Follow-ups",
+                 "Falsely closed", ""],
+        "open_link": "open",
+        "h_overdue": "Open and overdue",
+        "h_fake": "Reported as “resolved” without a real reply",
+        "n_fake": "The old ticket agent sent “reviewed and addressed”, but no substantive reply has been sent to date.",
+        "h_staff": "Staff",
+        "n_staff": "“Answered” counts the first real reply per enquiry. “Open as owner” = open enquiries from clients "
+                   "whose Bitrix project this person is responsible for.",
+        "staff_head": ["Person", "answered", "within SLA", "rate", "median", "interim only", "open as owner"],
+        "not_rated": "not rated",
+        "h_mailbox": "Incoming per mailbox",
+        "mailbox_head": ["Mailbox / source", "incoming messages"],
+        "h_kinds": "Classification of all messages",
+    },
+}
+
+
+def _lang(cfg: Config) -> str:
+    return cfg.report_language if cfg.report_language in TEXT else "de"
 
 
 def _fmt(dt: datetime | None, cfg: Config) -> str:
     if not dt:
         return ""
     from zoneinfo import ZoneInfo
-    return dt.astimezone(ZoneInfo(cfg.sla.timezone)).strftime("%d.%m.%Y %H:%M")
+    return dt.astimezone(ZoneInfo(cfg.sla.timezone)).strftime(DATE_FMT[_lang(cfg)])
 
 
 def _h(x) -> str:
@@ -60,6 +131,7 @@ def staff_stats(cfg: Config, cases: list[Case]) -> list[dict]:
 
 
 def write_csv(cfg: Config, cases: list[Case], path: Path) -> None:
+    lang = _lang(cfg)
     fields = ["case_id", "status", "priority", "source", "client", "subject", "opened_at", "due_at",
               "response_at", "response_business_hours", "response_kind", "responder", "responder_via",
               "owner", "followups", "auto_closures", "auto_acks", "mailboxes", "web_link"]
@@ -68,16 +140,18 @@ def write_csv(cfg: Config, cases: list[Case], path: Path) -> None:
         w.writerow(fields)
         for c in cases:
             w.writerow([
-                c.case_id, STATUS_DE[c.status], c.priority, c.source, c.client, c.subject,
+                c.case_id, STATUS[lang][c.status], c.priority, c.source, c.client, c.subject,
                 _fmt(c.opened_at, cfg), _fmt(c.due_at, cfg), _fmt(c.response_at, cfg),
                 f"{c.response_business_hours:.1f}" if c.response_business_hours is not None else "",
-                c.response_kind or "", c.responder or "", VIA_DE.get(c.responder_via, c.responder_via),
+                c.response_kind or "", c.responder or "", VIA[lang].get(c.responder_via, c.responder_via),
                 c.owner or "", c.followups, c.auto_closures, c.auto_acks, " ".join(c.mailboxes), c.web_link,
             ])
 
 
 def write_html(cfg: Config, cases: list[Case], events: list[Event], since: datetime,
                now: datetime, path: Path) -> None:
+    lang = _lang(cfg)
+    t = TEXT[lang]
     status = Counter(c.status for c in cases)
     kinds = Counter(e.kind for e in events)
     per_mailbox = Counter(mb for e in events if e.direction == "in" for mb in e.mailboxes)
@@ -94,7 +168,7 @@ def write_html(cfg: Config, cases: list[Case], events: list[Event], since: datet
     def case_rows(cs):
         out = []
         for c in cs:
-            link = f'<a href="{_h(c.web_link)}">öffnen</a>' if c.web_link else ""
+            link = f'<a href="{_h(c.web_link)}">{t["open_link"]}</a>' if c.web_link else ""
             out.append(
                 f"<tr><td>{_h(c.priority)}</td><td>{_h(_fmt(c.opened_at, cfg))}</td><td>{_h(c.client)}</td>"
                 f"<td>{_h(c.subject[:90])}</td><td>{_h(', '.join(c.mailboxes))}</td><td>{_h(c.owner or '–')}</td>"
@@ -106,17 +180,21 @@ def write_html(cfg: Config, cases: list[Case], events: list[Event], since: datet
     for r in staff_stats(cfg, cases):
         rate = f"{r['sla_rate']:.0%}" if r["sla_rate"] is not None else "–"
         medh = f"{r['median_h']:.1f} h" if r["median_h"] is not None else "–"
-        tag = "" if r["monitored"] else " <small>(nicht bewertet)</small>"
+        tag = "" if r["monitored"] else f" <small>({t['not_rated']})</small>"
         staff_rows.append(
             f"<tr><td>{_h(r['name'])}{tag}</td><td>{r['answered']}</td><td>{r['in_sla']}</td><td>{rate}</td>"
             f"<td>{medh}</td><td>{r['interim']}</td><td>{r['open_as_owner']}</td></tr>"
         )
 
-    head = ["Prio", "Eingang", "Mandant", "Betreff", "Postfach", "Zuständig (Bitrix)", "Nachfragen",
-            "Schein-erledigt", ""]
-    thead = "".join(f"<th>{h}</th>" for h in head)
-    page = f"""<!doctype html><html lang="de"><head><meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1"><title>SLA-Baseline</title>
+    thead = "".join(f"<th>{h}</th>" for h in t["head"])
+    staff_head = "".join(f"<th>{h}</th>" for h in t["staff_head"])
+    mailbox_head = "".join(f"<th>{h}</th>" for h in t["mailbox_head"])
+    period = t["period"].format(
+        since=_h(_fmt(since, cfg)), now=_h(_fmt(now, cfg)), normal=cfg.sla.normal_hours,
+        urgent=cfg.sla.urgent_hours, start=cfg.sla.workday_start, end=cfg.sla.workday_end,
+        holidays=cfg.sla.holidays_subdivision, llm=t["llm_on"] if cfg.llm_enabled else t["llm_off"])
+    page = f"""<!doctype html><html lang="{lang}"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1"><title>{t["title"]}</title>
 <style>
 body{{font-family:-apple-system,Segoe UI,sans-serif;margin:24px;color:#1b1f24;background:#fff}}
 h1{{font-size:22px}} h2{{font-size:17px;margin-top:32px}}
@@ -125,35 +203,31 @@ h1{{font-size:22px}} h2{{font-size:17px;margin-top:32px}}
 table{{border-collapse:collapse;width:100%;font-size:13px;margin-top:8px}} th,td{{border-bottom:1px solid #eaeef2;padding:6px 8px;text-align:left;vertical-align:top}}
 th{{background:#f6f8fa}} small{{color:#57606a}} .note{{font-size:13px;color:#57606a;max-width:900px}}
 </style></head><body>
-<h1>Antwortzeiten – Baseline</h1>
-<p class="note">Zeitraum {_h(_fmt(since, cfg))} bis {_h(_fmt(now, cfg))}. Frist: {cfg.sla.normal_hours:g} Arbeitsstunden
-(1 Werktag), dringend {cfg.sla.urgent_hours:g} Arbeitsstunden. Arbeitszeit {cfg.sla.workday_start}–{cfg.sla.workday_end}, Mo–Fr, Feiertage {cfg.sla.holidays_subdivision}.
-Schattenbetrieb: keine Eskalationen. Einstufung {"mit KI" if cfg.llm_enabled else "nur regelbasiert (KI aus)"}.</p>
+<h1>{t["h1"]}</h1>
+<p class="note">{period}</p>
 <div class="tiles">
-{tile("Mandantenanfragen", len(cases))}
-{tile("beantwortet in Frist", status["answered_in_sla"])}
-{tile("beantwortet zu spät", status["answered_late"], status["answered_late"] > 0)}
-{tile("offen, überfällig", status["open_overdue"], status["open_overdue"] > 0)}
-{tile("offen, in Frist", status["open_in_sla"])}
-{tile("Median Erstantwort", f"{med:.1f} h" if med is not None else "–")}
-{tile("Schein-erledigt, ohne Antwort", len(fake), len(fake) > 0)}
-{tile("Antwortende/r unbekannt", unknown_resp, unknown_resp > 0)}
+{tile(t["t_cases"], len(cases))}
+{tile(t["t_in_sla"], status["answered_in_sla"])}
+{tile(t["t_late"], status["answered_late"], status["answered_late"] > 0)}
+{tile(t["t_overdue"], status["open_overdue"], status["open_overdue"] > 0)}
+{tile(t["t_open"], status["open_in_sla"])}
+{tile(t["t_median"], f"{med:.1f} h" if med is not None else "–")}
+{tile(t["t_fake"], len(fake), len(fake) > 0)}
+{tile(t["t_unknown"], unknown_resp, unknown_resp > 0)}
 </div>
-<h2>Offen und überfällig ({len(open_overdue)})</h2>
+<h2>{t["h_overdue"]} ({len(open_overdue)})</h2>
 <table><thead><tr>{thead}</tr></thead><tbody>{case_rows(open_overdue)}</tbody></table>
-<h2>„Erledigt“ gemeldet ohne echte Antwort ({len(fake)})</h2>
-<p class="note">Der alte Ticket-Agent hat „reviewed and addressed“ verschickt, eine inhaltliche Antwort fehlt bis heute.</p>
+<h2>{t["h_fake"]} ({len(fake)})</h2>
+<p class="note">{t["n_fake"]}</p>
 <table><thead><tr>{thead}</tr></thead><tbody>{case_rows(fake)}</tbody></table>
-<h2>Mitarbeiter</h2>
-<p class="note">„Beantwortet“ zählt die erste echte Antwort je Anfrage. „Offen als Zuständige/r“ = offene Anfragen von Mandanten,
-deren Bitrix-Projekt diese Person verantwortet.</p>
-<table><thead><tr><th>Person</th><th>beantwortet</th><th>davon in Frist</th><th>Quote</th><th>Median</th>
-<th>nur Zwischenstand</th><th>offen als Zuständige/r</th></tr></thead><tbody>{"".join(staff_rows)}</tbody></table>
-<h2>Eingang je Postfach</h2>
-<table><thead><tr><th>Postfach / Quelle</th><th>eingehende Nachrichten</th></tr></thead><tbody>
+<h2>{t["h_staff"]}</h2>
+<p class="note">{t["n_staff"]}</p>
+<table><thead><tr>{staff_head}</tr></thead><tbody>{"".join(staff_rows)}</tbody></table>
+<h2>{t["h_mailbox"]}</h2>
+<table><thead><tr>{mailbox_head}</tr></thead><tbody>
 {"".join(f"<tr><td>{_h(k)}</td><td>{v}</td></tr>" for k, v in per_mailbox.most_common())}
 </tbody></table>
-<h2>Einstufung aller Nachrichten</h2>
+<h2>{t["h_kinds"]}</h2>
 <table><tbody>{"".join(f"<tr><td>{_h(k)}</td><td>{v}</td></tr>" for k, v in kinds.most_common())}</tbody></table>
 </body></html>"""
     path.write_text(page, encoding="utf-8")
