@@ -87,7 +87,15 @@ class GraphClient:
             "$orderby": "receivedDateTime asc",
             "$top": "100",
         }
-        yield from self.paged(url, params)
+        try:
+            yield from self.paged(url, params)
+        except RuntimeError as e:
+            # Falls Graph uniqueBody in Listenabfragen ablehnt: auf body ausweichen (enthält dann auch Zitate)
+            if "uniqueBody" not in str(e):
+                raise
+            log.warning("%s: uniqueBody nicht verfügbar, nutze body", mailbox)
+            params["$select"] = SELECT.replace("uniqueBody", "body")
+            yield from self.paged(url, params)
 
 
 def _addr(obj: dict | None) -> tuple[str, str]:
@@ -124,7 +132,7 @@ def to_event(cfg: Config, mailbox: str, msg: dict) -> Event | None:
     if msg.get("conversationId"):
         hints.append(f"conv:{mailbox}:{msg['conversationId']}")
 
-    body = ((msg.get("uniqueBody") or {}).get("content") or "")[:BODY_LIMIT]
+    body = ((msg.get("uniqueBody") or msg.get("body") or {}).get("content") or "")[:BODY_LIMIT]
     return Event(
         uid=uid,
         source="mail",
